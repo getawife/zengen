@@ -1,0 +1,197 @@
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #ffffff;
+  background: #d91f26;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 255, 255, 0.1),
+      transparent 34%
+    ),
+    #d91f26;
+}
+
+main {
+  width: min(100% - 40px, 720px);
+  margin: 0 auto;
+  padding: 48px 0 64px;
+}
+
+header {
+  margin-bottom: 52px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 36px;
+  color: rgba(255, 255, 255, 0.78);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.back svg {
+  width: 17px;
+  height: 17px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(40px, 8vw, 58px);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+header p {
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 16px;
+}
+
+section {
+  margin-top: 42px;
+}
+
+.section-heading {
+  margin-bottom: 18px;
+}
+
+h2 {
+  font-size: 21px;
+  letter-spacing: -0.025em;
+}
+
+.section-heading p {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.add-form {
+  display: flex;
+  gap: 9px;
+}
+
+input {
+  min-width: 0;
+  flex: 1;
+  padding: 13px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font: inherit;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+input:focus {
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.add-form button {
+  width: 46px;
+  flex: 0 0 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #d91f26;
+  cursor: pointer;
+}
+
+.add-form button svg {
+  width: 19px;
+  height: 19px;
+}
+
+.site-list {
+  margin-top: 10px;
+}
+
+.site {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.site span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.remove {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.remove svg {
+  width: 17px;
+  height: 17px;
+}
+
+.empty {
+  padding: 17px 2px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 14px;
+}
+
+.error {
+  min-height: 20px;
+  margin-top: 20px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}

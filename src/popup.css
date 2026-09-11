@@ -86,3 +86,16 @@ button:hover {
 button:active {
   transform: scale(0.98);
 }
+
+.settings-link {
+  margin-top: 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.78);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-link:hover {
+  color: #ffffff;
+}

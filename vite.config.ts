@@ -14,6 +14,7 @@ export default defineConfig({
         content: resolve(root, "src/content.ts"),
         popup: resolve(root, "popup.html"),
         blocked: resolve(root, "blocked.html"),
+        settings: resolve(root, "settings.html"),
       },
       output: {
         entryFileNames: "assets/[name].js",

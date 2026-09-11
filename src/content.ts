@@ -2,19 +2,36 @@ import { classify } from "./classifier/classifier";
 import { blockPage } from "./ui/blocker";
 
 const processed = new WeakSet<Element>();
-
 let scheduled = false;
 let blocked = false;
 let enabled = true;
+let siteAllowed = false;
+let siteBlocked = false;
 
 async function loadSettings(): Promise<void> {
   const settings = await chrome.storage.local.get({
     enabled: true,
+    allowlist: [],
+    blocklist: [],
   });
 
   enabled = Boolean(settings.enabled);
 
-  if (!enabled) {
+  const hostname = location.hostname.toLowerCase().replace(/\.$/, "");
+
+  const allowlist = Array.isArray(settings.allowlist) ? settings.allowlist : [];
+
+  const blocklist = Array.isArray(settings.blocklist) ? settings.blocklist : [];
+
+  siteAllowed = allowlist.some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+  );
+
+  siteBlocked = blocklist.some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+  );
+
+  if (!enabled || siteAllowed) {
     blocked = false;
   }
 }
@@ -57,7 +74,13 @@ function scoreElement(element: Element): number {
 }
 
 function scan(root: ParentNode): void {
-  if (!enabled || blocked) return;
+  if (!enabled || siteAllowed || blocked) return;
+
+  if (siteBlocked) {
+    blockPage(100);
+    blocked = true;
+    return;
+  }
 
   const elements = root.querySelectorAll(
     "body,main,article,section,div,p,h1,h2,h3,h4,h5,h6,a,img",
@@ -91,7 +114,7 @@ function scan(root: ParentNode): void {
 }
 
 function scheduleScan(root: ParentNode = document): void {
-  if (!enabled || scheduled || blocked) return;
+  if (!enabled || siteAllowed || scheduled || blocked) return;
 
   scheduled = true;
 
@@ -99,7 +122,7 @@ function scheduleScan(root: ParentNode = document): void {
     scheduled = false;
 
     requestAnimationFrame(() => {
-      if (enabled && !blocked) {
+      if (enabled && !siteAllowed && !blocked) {
         scan(root);
       }
     });
@@ -108,7 +131,7 @@ function scheduleScan(root: ParentNode = document): void {
 
 function observe(): void {
   const observer = new MutationObserver((mutations) => {
-    if (!enabled || blocked) return;
+    if (!enabled || siteAllowed || blocked) return;
 
     let shouldScan = false;
 
@@ -141,33 +164,37 @@ function observe(): void {
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local" || !changes.enabled) return;
+  if (area !== "local") return;
 
-  enabled = Boolean(changes.enabled.newValue);
+  if (changes.enabled || changes.allowlist || changes.blocklist) {
+    void loadSettings().then(() => {
+      if (!enabled || siteAllowed) {
+        return;
+      }
 
-  if (enabled) {
-    blocked = false;
-    scheduleScan();
+      blocked = false;
+      scheduleScan();
+    });
   }
 });
 
 async function init(): Promise<void> {
   await loadSettings();
 
-  if (!enabled) return;
+  if (!enabled || siteAllowed) return;
 
   scheduleScan();
   observe();
 
   window.addEventListener("popstate", () => {
-    if (!enabled) return;
+    if (!enabled || siteAllowed) return;
 
     blocked = false;
     scheduleScan();
   });
 
   window.addEventListener("hashchange", () => {
-    if (!enabled) return;
+    if (!enabled || siteAllowed) return;
 
     blocked = false;
     scheduleScan();
