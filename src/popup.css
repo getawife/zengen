@@ -18,84 +18,109 @@
 html,
 body {
   width: 320px;
-  min-height: 280px;
+  height: 220px;
   margin: 0;
 }
 
 body {
   background:
     radial-gradient(
-      circle at 50% 20%,
-      rgba(255, 255, 255, 0.09),
+      circle at 50% 0%,
+      rgba(255, 255, 255, 0.1),
       transparent 42%
     ),
     #d91f26;
 }
 
 main {
-  min-height: 280px;
-  padding: 34px 28px 28px;
+  height: 100%;
+  padding: 24px;
   display: flex;
   flex-direction: column;
 }
 
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 h1 {
   margin: 0;
-  font-size: 32px;
+  font-size: 28px;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
   font-weight: 750;
 }
 
 .status {
   display: flex;
   align-items: center;
-  gap: 9px;
-  margin-top: 24px;
-  font-size: 14px;
-  font-weight: 600;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #ffffff;
 }
 
-button {
-  width: 100%;
+.actions {
   margin-top: auto;
-  padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toggle,
+.settings {
+  width: 100%;
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
   font: inherit;
+  font-size: 14px;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
+}
+
+.toggle {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: #ffffff;
+  color: #d91f26;
+  transition:
+    transform 140ms ease,
+    background 140ms ease;
+}
+
+.toggle:hover {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.toggle:active {
+  transform: scale(0.98);
+}
+
+.settings {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
   transition:
     background 140ms ease,
     transform 140ms ease;
 }
 
-button:hover {
-  background: rgba(255, 255, 255, 0.22);
+.settings:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
-button:active {
+.settings:active {
   transform: scale(0.98);
-}
-
-.settings-link {
-  margin-top: 16px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.78);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.settings-link:hover {
-  color: #ffffff;
 }

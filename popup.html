@@ -8,16 +8,20 @@
   </head>
   <body>
     <main>
-      <h1>Zengen</h1>
+      <header>
+        <h1>Zengen</h1>
 
-      <div class="status">
-        <span class="status-dot"></span>
-        <span id="status">Loading...</span>
+        <div class="status">
+          <span class="status-dot"></span>
+          <span id="status">Loading...</span>
+        </div>
+      </header>
+
+      <div class="actions">
+        <button id="toggle" class="toggle" type="button">Loading...</button>
+
+        <a class="settings" href="settings.html"> Settings </a>
       </div>
-
-      <button id="toggle" type="button">Loading...</button>
-
-      <a class="settings-link" href="settings.html"> Settings </a>
     </main>
 
     <script type="module" src="/src/popup.ts"></script>
