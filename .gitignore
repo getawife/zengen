@@ -1,4 +1,5 @@
 /dist
 /node_modules
+/.tmp-tests
 roadmap.md
 v2.txt

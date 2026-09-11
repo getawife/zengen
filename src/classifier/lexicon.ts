@@ -21,7 +21,7 @@ export const adultTerms = new Set([
   "desnudo",
   "desnuda",
   "erotico",
-  "erótica",
+  "erotica",
 
   "pornografie",
   "nackt",
@@ -52,9 +52,9 @@ export const adultTerms = new Set([
 
   "porno",
   "seks",
-  "çıplak",
+  "ciplak",
 
-  "باحية",
+  "إباحية",
   "جنس",
   "عري",
 
@@ -75,15 +75,14 @@ export const adultPhrases = [
   "xxx video",
   "contenido para adultos",
   "contenido sexual",
-  "contenido explícito",
+  "contenido explicito",
   "contenu pour adultes",
   "contenu sexuel",
   "erotische inhalte",
   "contenido adulto",
   "成人内容",
   "成人影片",
-  "成人視頻",
-  "成人内容",
+  "成人视频",
   "성인 콘텐츠",
   "成人向け",
   "взрослый контент",

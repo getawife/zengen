@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "test": "tsc -p tsconfig.test.json && node --test .tmp-tests/tests/classifier.test.js",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".tmp-tests",
+    "rootDir": ".",
+    "types": ["node", "chrome"]
+  },
+  "include": ["src/classifier/**/*.ts", "tests/**/*.ts"]
+}

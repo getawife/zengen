@@ -1,9 +1,9 @@
-import { adultPhrases, adultTerms } from "./lexicon";
+import { adultPhrases, adultTerms } from "./lexicon.js";
 import {
   compactText,
   normalizeObfuscatedText,
   normalizeText,
-} from "./normalize";
+} from "./normalize.js";
 
 export interface ClassificationResult {
   score: number;
@@ -63,6 +63,15 @@ function matchingUrlSignals(url: string): string[] {
   return [...new Set(signals)];
 }
 
+function hasObfuscatedTerm(compact: string, obfuscated: string): boolean {
+  for (const term of adultTerms) {
+    if (WEAK_TERMS.has(term) || term.length < 4) continue;
+    if (compact.includes(term) || obfuscated.includes(term)) return true;
+  }
+
+  return false;
+}
+
 export function classify(input: {
   text?: string;
   url?: string;
@@ -102,8 +111,8 @@ export function classify(input: {
     signals.push(...urlSignals);
   }
 
-  if (adultTerms.has(compact) || adultTerms.has(obfuscated)) {
-    score += 28;
+  if (hasObfuscatedTerm(compact, obfuscated)) {
+    score += 50;
     signals.push("OBFUSCATED_TERM");
   }
 
