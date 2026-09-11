@@ -22,7 +22,7 @@
 html,
 body {
   width: 348px;
-  min-height: 390px;
+  min-height: 212px;
   margin: 0;
 }
 
@@ -31,8 +31,8 @@ body {
 }
 
 main {
-  min-height: 390px;
-  padding: 22px;
+  min-height: 212px;
+  padding: 20px 22px;
   display: flex;
   flex-direction: column;
 }
@@ -44,10 +44,22 @@ header {
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--ink);
-  font-size: 20px;
+  font-size: 22px;
+  line-height: 1;
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
+}
+
+.brand img {
+  width: 26px;
+  height: 26px;
+  display: block;
+  flex: 0 0 26px;
+  object-fit: contain;
 }
 
 .status,
@@ -60,7 +72,7 @@ header {
 }
 
 .site {
-  margin-top: 68px;
+  margin-top: 58px;
 }
 
 .site-label {
@@ -88,7 +100,7 @@ header {
 }
 
 .actions {
-  margin-top: auto;
+  margin-top: 42px;
   display: flex;
   flex-direction: column;
   gap: 14px;

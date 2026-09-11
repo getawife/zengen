@@ -1,4 +1,6 @@
 import { classify } from "./classifier/classifier";
+import { adultDomains } from "./sites/adultDomains";
+import { domainMatches } from "./sites/domain";
 import { blockPage } from "./ui/blocker";
 
 let scheduled = false;
@@ -22,13 +24,11 @@ async function loadSettings(): Promise<void> {
 
   const blocklist = Array.isArray(settings.blocklist) ? settings.blocklist : [];
 
-  siteAllowed = allowlist.some(
-    (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
-  );
+  siteAllowed = allowlist.some((domain) => domainMatches(hostname, domain));
 
-  siteBlocked = blocklist.some(
-    (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
-  );
+  siteBlocked =
+    blocklist.some((domain) => domainMatches(hostname, domain)) ||
+    adultDomains.some((domain) => domainMatches(hostname, domain));
 
   if (!enabled || siteAllowed) {
     blocked = false;
@@ -69,6 +69,13 @@ function scan(root: ParentNode): void {
   if (!enabled || siteAllowed || blocked) return;
 
   if (siteBlocked) {
+    console.info("[Zengen] Classification result", {
+      url: location.href,
+      score: 100,
+      blocked: true,
+      signals: "SITE_BLOCKED",
+    });
+
     blockPage(100);
     blocked = true;
     return;

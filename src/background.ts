@@ -1,3 +1,5 @@
+import { adultDomains } from "./sites/adultDomains.js";
+
 type Settings = {
   enabled: boolean;
   strictness: "balanced" | "strict";
@@ -27,12 +29,7 @@ type BlockedSite = {
   hostname: string;
 };
 
-const RULESET_ID = "zengen_rules";
-
 const DYNAMIC_RULE_START = 10000;
-const ALLOW_RULE_START = DYNAMIC_RULE_START;
-const BLOCK_RULE_START = DYNAMIC_RULE_START + 5000;
-const ADULT_RULE_START = DYNAMIC_RULE_START + 10000;
 
 const defaults: Settings = {
   enabled: true,
@@ -138,16 +135,6 @@ async function savePin(newPin: string): Promise<void> {
   });
 }
 
-const adultDomains = [
-  "pornhub.com",
-  "xvideos.com",
-  "xnxx.com",
-  "xhamster.com",
-  "redtube.com",
-  "youporn.com",
-  "rule34.xxx",
-];
-
 async function getSettings(): Promise<Settings> {
   const result = await chrome.storage.local.get(defaults);
 
@@ -216,133 +203,28 @@ function hostnameMatchesDomain(hostname: string, domain: string): boolean {
   );
 }
 
-function createRedirectRule(
-  id: number,
-  domain: string,
-  priority: number,
-): chrome.declarativeNetRequest.Rule {
-  const escapedDomain = normalizeDomain(domain).replace(/\./g, "\\.");
-
-  return {
-    id,
-    priority,
-    action: {
-      type: "redirect",
-      redirect: {
-        extensionPath: "/blocked.html",
-      },
-    },
-    condition: {
-      regexFilter: `^https?://(?:www\\.)?(?:[^/?#]+\\.)*${escapedDomain}(?:[/:?#]|$)`,
-      resourceTypes: ["main_frame"],
-    },
-  };
-}
-
-function createAllowRule(
-  id: number,
-  domain: string,
-): chrome.declarativeNetRequest.Rule {
-  return {
-    id,
-    priority: 2000,
-    action: {
-      type: "allow",
-    },
-    condition: {
-      requestDomains: [normalizeDomain(domain)],
-      resourceTypes: ["main_frame"],
-    },
-  };
-}
-
-function createPornUrlRule(): chrome.declarativeNetRequest.Rule {
-  return {
-    id: ADULT_RULE_START + 7,
-    priority: 900,
-    action: {
-      type: "redirect",
-      redirect: {
-        extensionPath: "/blocked.html",
-      },
-    },
-    condition: {
-      regexFilter: "^https?://[^/?#]+[^\\r\\n]*[Pp][Oo][Rr][Nn][^\\r\\n]*$",
-      resourceTypes: ["main_frame"],
-    },
-  };
-}
-
-function createSiteRules(
-  allowlist: string[],
-  blocklist: string[],
-): chrome.declarativeNetRequest.Rule[] {
-  const rules: chrome.declarativeNetRequest.Rule[] = [];
-
-  const normalizedAllowlist = [
-    ...new Set(allowlist.map(normalizeDomain).filter(Boolean)),
-  ];
-
-  const normalizedBlocklist = [
-    ...new Set(blocklist.map(normalizeDomain).filter(Boolean)),
-  ];
-
-  normalizedAllowlist.forEach((domain, index) => {
-    rules.push(createAllowRule(ALLOW_RULE_START + index, domain));
-  });
-
-  normalizedBlocklist.forEach((domain, index) => {
-    rules.push(createRedirectRule(BLOCK_RULE_START + index, domain, 1500));
-  });
-
-  adultDomains.forEach((domain, index) => {
-    rules.push(createRedirectRule(ADULT_RULE_START + index, domain, 1000));
-  });
-
-  rules.push(createPornUrlRule());
-
-  return rules;
-}
-
 async function updateSiteRules(): Promise<void> {
-  const settings = await getSettings();
-
   const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
 
   const removeRuleIds = existingRules
     .map((rule) => rule.id)
     .filter((id) => id >= DYNAMIC_RULE_START);
 
-  const addRules = settings.enabled
-    ? createSiteRules(settings.allowlist, settings.blocklist)
-    : [];
-
   await chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds,
-    addRules,
+    addRules: [],
   });
 }
 
-async function setRulesetEnabled(enabled: boolean): Promise<void> {
-  if (enabled) {
-    await chrome.declarativeNetRequest.updateEnabledRulesets({
-      enableRulesetIds: [RULESET_ID],
-      disableRulesetIds: [],
-    });
-
-    return;
-  }
-
+async function disableRuleset(): Promise<void> {
   await chrome.declarativeNetRequest.updateEnabledRulesets({
     enableRulesetIds: [],
-    disableRulesetIds: [RULESET_ID],
+    disableRulesetIds: ["zengen_rules"],
   });
 }
 
 async function applySettings(): Promise<void> {
-  const settings = await getSettings();
-
-  await setRulesetEnabled(settings.enabled);
+  await disableRuleset();
   await updateSiteRules();
 }
 

@@ -21,7 +21,7 @@
 
 html,
 body {
-  width: 100%;
+  width: 348px;
   min-height: 100%;
   margin: 0;
 }
@@ -32,7 +32,7 @@ body {
 }
 
 main {
-  width: min(100% - 48px, 720px);
+  width: 348px;
   min-height: 100vh;
   margin: 0 auto;
   padding: 30px 0 56px;

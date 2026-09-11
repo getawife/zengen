@@ -4,22 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Zengen</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="stylesheet" href="/src/popup.css" />
   </head>
 
   <body>
     <main>
       <header>
-        <div class="brand">Zengen</div>
+        <div class="brand">
+          <img src="/favicon.png" alt="" width="32" height="32" />
+          <span>Zengen</span>
+        </div>
 
         <div class="status" id="status">Enabled</div>
       </header>
-
-      <section class="site">
-        <p class="site-label">CURRENT SITE</p>
-        <h1 id="domain">Loading...</h1>
-        <p id="site-state">Checking status...</p>
-      </section>
 
       <div class="actions">
         <button id="toggle" class="primary" type="button">
