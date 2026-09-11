@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Zengen",
+  "version": "0.1.0",
+  "description": "Blocks adult content and other unwanted websites.",
+  "permissions": ["storage", "declarativeNetRequest"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "assets/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Zengen",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["assets/content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "zengen_rules",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["blocked.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

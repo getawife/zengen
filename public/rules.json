@@ -1,0 +1,114 @@
+[
+  {
+    "id": 1,
+    "priority": 100,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||pornhub.",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 100,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||xvideos.",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 100,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||xnxx.",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 100,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||xhamster.",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 5,
+    "priority": 100,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||redtube.",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 6,
+    "priority": 100,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||youporn.",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 7,
+    "priority": 100,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||rule34.",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 8,
+    "priority": 90,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "porn",
+      "resourceTypes": ["main_frame"]
+    }
+  }
+]

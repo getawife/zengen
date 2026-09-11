@@ -1,0 +1,16 @@
+{
+  "name": "zengen",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.326",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}
