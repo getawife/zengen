@@ -15,26 +15,47 @@
           <span>Back</span>
         </a>
 
-        <div class="heading">
-          <h1>Settings</h1>
-        </div>
+        <h1>Settings</h1>
       </header>
 
       <section class="sites">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">SITES</p>
-            <h2>Site rules</h2>
-            <p>Choose which websites Zengen should always allow or block.</p>
+        <div class="site-section pin-section">
+          <div class="site-heading">
+            <h2>Parental controls</h2>
           </div>
+
+          <form id="pin-form" class="pin-form">
+            <input
+              id="current-pin"
+              type="password"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="Current PIN"
+              autocomplete="current-password"
+            />
+            <input
+              id="new-pin"
+              type="password"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="New PIN"
+              autocomplete="new-password"
+            />
+            <input
+              id="confirm-pin"
+              type="password"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="Confirm PIN"
+              autocomplete="new-password"
+            />
+            <button type="submit">Save PIN</button>
+          </form>
         </div>
 
         <div class="site-section">
           <div class="site-heading">
-            <div>
-              <h3>Allowed sites</h3>
-              <p>These sites will never be blocked.</p>
-            </div>
+            <h2>Allowed sites</h2>
           </div>
 
           <form id="allow-form" class="add-form">
@@ -56,10 +77,7 @@
 
         <div class="site-section">
           <div class="site-heading">
-            <div>
-              <h3>Blocked sites</h3>
-              <p>These sites will always be blocked.</p>
-            </div>
+            <h2>Blocked sites</h2>
           </div>
 
           <form id="block-form" class="add-form">

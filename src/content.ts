@@ -88,7 +88,7 @@ function scan(root: ParentNode): void {
 
   let highestScore = 0;
 
-  for (const element of elements) {
+  for (const element of Array.from(elements)) {
     if (processed.has(element)) continue;
     if (!isRelevant(element)) continue;
 

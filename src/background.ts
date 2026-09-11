@@ -5,10 +5,22 @@ type Settings = {
   blocklist: string[];
 };
 
+type PinRecord = {
+  salt: string;
+  verifier: string;
+};
+
 type Message =
   | { type: "get-settings" }
   | { type: "get-blocked-site"; tabId: number }
-  | { type: "set-enabled"; enabled: boolean };
+  | { type: "set-enabled"; enabled: boolean; pin?: string }
+  | {
+      type: "update-lists";
+      allowlist: string[];
+      blocklist: string[];
+      pin?: string;
+    }
+  | { type: "set-pin"; currentPin?: string; newPin: string };
 
 type BlockedSite = {
   url: string;
@@ -28,6 +40,103 @@ const defaults: Settings = {
   allowlist: [],
   blocklist: [],
 };
+
+const PIN_ITERATIONS = 310_000;
+const PIN_KEY_LENGTH = 256;
+const PIN_SALT_LENGTH = 16;
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary);
+}
+
+function base64ToBytes(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return bytes;
+}
+
+async function derivePinVerifier(
+  pin: string,
+  salt: Uint8Array,
+): Promise<string> {
+  const material = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(pin),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: salt as unknown as BufferSource,
+      iterations: PIN_ITERATIONS,
+      hash: "SHA-256",
+    },
+    material,
+    PIN_KEY_LENGTH,
+  );
+
+  return bytesToBase64(new Uint8Array(bits));
+}
+
+async function getPinRecord(): Promise<PinRecord | null> {
+  const result = await chrome.storage.local.get("pinRecord");
+  const record = result.pinRecord as Partial<PinRecord> | undefined;
+
+  if (
+    !record ||
+    typeof record.salt !== "string" ||
+    typeof record.verifier !== "string"
+  ) {
+    return null;
+  }
+
+  return record as PinRecord;
+}
+
+async function verifyPin(pin: string | undefined): Promise<boolean> {
+  const record = await getPinRecord();
+
+  if (!record) return true;
+  if (typeof pin !== "string") return false;
+
+  const verifier = await derivePinVerifier(pin, base64ToBytes(record.salt));
+
+  return verifier === record.verifier;
+}
+
+function validatePin(pin: string): void {
+  if (!/^\d{4,12}$/.test(pin)) {
+    throw new Error("PIN must be 4 to 12 digits.");
+  }
+}
+
+async function savePin(newPin: string): Promise<void> {
+  validatePin(newPin);
+
+  const salt = crypto.getRandomValues(new Uint8Array(PIN_SALT_LENGTH));
+  const verifier = await derivePinVerifier(newPin, salt);
+
+  await chrome.storage.local.set({
+    pinRecord: {
+      salt: bytesToBase64(salt),
+      verifier,
+    } satisfies PinRecord,
+  });
+}
 
 const adultDomains = [
   "pornhub.com",
@@ -58,6 +167,15 @@ async function getSettings(): Promise<Settings> {
   };
 }
 
+async function getSettingsForPage(): Promise<
+  Settings & { pinConfigured: boolean }
+> {
+  return {
+    ...(await getSettings()),
+    pinConfigured: (await getPinRecord()) !== null,
+  };
+}
+
 function normalizeDomain(domain: string): string {
   return domain
     .trim()
@@ -66,6 +184,25 @@ function normalizeDomain(domain: string): string {
     .replace(/^www\./, "")
     .replace(/\/.*$/, "")
     .replace(/\.$/, "");
+}
+
+function normalizeList(values: string[]): string[] {
+  return [...new Set(values.map(normalizeDomain).filter(Boolean))].sort();
+}
+
+async function updateLists(
+  allowlist: string[],
+  blocklist: string[],
+): Promise<void> {
+  const normalizedAllowlist = normalizeList(allowlist);
+  const normalizedBlocklist = normalizeList(blocklist).filter(
+    (domain) => !normalizedAllowlist.includes(domain),
+  );
+
+  await chrome.storage.local.set({
+    allowlist: normalizedAllowlist,
+    blocklist: normalizedBlocklist,
+  });
 }
 
 function hostnameMatchesDomain(hostname: string, domain: string): boolean {
@@ -176,7 +313,9 @@ async function updateSiteRules(): Promise<void> {
     .map((rule) => rule.id)
     .filter((id) => id >= DYNAMIC_RULE_START);
 
-  const addRules = createSiteRules(settings.allowlist, settings.blocklist);
+  const addRules = settings.enabled
+    ? createSiteRules(settings.allowlist, settings.blocklist)
+    : [];
 
   await chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds,
@@ -321,7 +460,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 chrome.runtime.onMessage.addListener(
   (message: Message, _sender, sendResponse) => {
     if (message.type === "get-settings") {
-      getSettings()
+      getSettingsForPage()
         .then((settings) => {
           sendResponse(settings);
         })
@@ -366,6 +505,15 @@ chrome.runtime.onMessage.addListener(
     if (message.type === "set-enabled") {
       void (async () => {
         try {
+          if (!(await verifyPin(message.pin))) {
+            sendResponse({
+              ok: false,
+              error: "Incorrect PIN.",
+            });
+
+            return;
+          }
+
           await chrome.storage.local.set({
             enabled: message.enabled,
           });
@@ -393,6 +541,62 @@ chrome.runtime.onMessage.addListener(
 
           sendResponse({
             ok: false,
+          });
+        }
+      })();
+
+      return true;
+    }
+
+    if (message.type === "update-lists") {
+      void (async () => {
+        try {
+          if (!(await verifyPin(message.pin))) {
+            sendResponse({
+              ok: false,
+              error: "Incorrect PIN.",
+            });
+
+            return;
+          }
+
+          await updateLists(message.allowlist, message.blocklist);
+
+          sendResponse({ ok: true });
+        } catch (error) {
+          console.error("Failed to update site rules:", error);
+
+          sendResponse({
+            ok: false,
+            error: "Unable to update site rules.",
+          });
+        }
+      })();
+
+      return true;
+    }
+
+    if (message.type === "set-pin") {
+      void (async () => {
+        try {
+          const currentRecord = await getPinRecord();
+
+          if (currentRecord && !(await verifyPin(message.currentPin))) {
+            sendResponse({
+              ok: false,
+              error: "Incorrect current PIN.",
+            });
+
+            return;
+          }
+
+          await savePin(message.newPin);
+          sendResponse({ ok: true });
+        } catch (error) {
+          sendResponse({
+            ok: false,
+            error:
+              error instanceof Error ? error.message : "Unable to save PIN.",
           });
         }
       })();

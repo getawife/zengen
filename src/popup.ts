@@ -4,11 +4,14 @@ const toggle = document.querySelector<HTMLButtonElement>("#toggle");
 const statusElement = document.querySelector<HTMLElement>("#status");
 const domainElement = document.querySelector<HTMLElement>("#domain");
 const siteStateElement = document.querySelector<HTMLElement>("#site-state");
+let activeTabId: number | undefined;
+let blockedUrl: string | undefined;
 
 type Settings = {
   enabled: boolean;
   allowlist: string[];
   blocklist: string[];
+  pinConfigured: boolean;
 };
 
 async function getSettings(): Promise<Settings> {
@@ -20,6 +23,7 @@ async function getSettings(): Promise<Settings> {
     enabled: Boolean(result?.enabled),
     allowlist: Array.isArray(result?.allowlist) ? result.allowlist : [],
     blocklist: Array.isArray(result?.blocklist) ? result.blocklist : [],
+    pinConfigured: Boolean(result?.pinConfigured),
   };
 }
 
@@ -96,17 +100,21 @@ async function load(): Promise<void> {
       return;
     }
 
+    activeTabId = tab.id;
+
     const result = await chrome.runtime.sendMessage({
       type: "get-blocked-site",
       tabId: tab.id,
     });
 
     if (result?.blocked && result.hostname) {
+      blockedUrl = result.url;
       update(settings.enabled, result.hostname, settings, true);
 
       return;
     }
 
+    blockedUrl = undefined;
     update(settings.enabled, getHostname(tab.url), settings);
   } catch {
     if (toggle) {
@@ -122,15 +130,36 @@ toggle?.addEventListener("click", async () => {
 
   try {
     const settings = await getSettings();
+    const pin = settings.pinConfigured
+      ? window.prompt("Enter your parental-controls PIN.")
+      : undefined;
+
+    if (settings.pinConfigured && pin === null) {
+      toggle.disabled = false;
+      return;
+    }
 
     const response = await chrome.runtime.sendMessage({
       type: "set-enabled",
       enabled: !settings.enabled,
+      pin,
     });
 
     if (!response?.ok) {
+      if (response?.error) {
+        window.alert(response.error);
+      }
+
       toggle.disabled = false;
       return;
+    }
+
+    if (activeTabId !== undefined) {
+      if (!response.enabled && blockedUrl) {
+        await chrome.tabs.update(activeTabId, { url: blockedUrl });
+      } else {
+        await chrome.tabs.reload(activeTabId);
+      }
     }
 
     await load();

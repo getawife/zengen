@@ -5,6 +5,10 @@ type SiteLists = {
   blocklist: string[];
 };
 
+type Settings = SiteLists & {
+  pinConfigured: boolean;
+};
+
 const allowForm = document.querySelector<HTMLFormElement>("#allow-form");
 const blockForm = document.querySelector<HTMLFormElement>("#block-form");
 const allowInput = document.querySelector<HTMLInputElement>("#allow-input");
@@ -12,17 +16,60 @@ const blockInput = document.querySelector<HTMLInputElement>("#block-input");
 const allowList = document.querySelector<HTMLElement>("#allow-list");
 const blockList = document.querySelector<HTMLElement>("#block-list");
 const errorElement = document.querySelector<HTMLElement>("#error");
+const pinForm = document.querySelector<HTMLFormElement>("#pin-form");
+const currentPinInput =
+  document.querySelector<HTMLInputElement>("#current-pin");
+const newPinInput = document.querySelector<HTMLInputElement>("#new-pin");
+const confirmPinInput =
+  document.querySelector<HTMLInputElement>("#confirm-pin");
 
 async function getLists(): Promise<SiteLists> {
-  const result = await chrome.storage.local.get({
-    allowlist: [],
-    blocklist: [],
-  });
+  const result = (await chrome.runtime.sendMessage({
+    type: "get-settings",
+  })) as Partial<Settings> | undefined;
 
   return {
-    allowlist: Array.isArray(result.allowlist) ? result.allowlist : [],
-    blocklist: Array.isArray(result.blocklist) ? result.blocklist : [],
+    allowlist: Array.isArray(result?.allowlist) ? result.allowlist : [],
+    blocklist: Array.isArray(result?.blocklist) ? result.blocklist : [],
   };
+}
+
+async function getSettings(): Promise<Settings> {
+  const result = (await chrome.runtime.sendMessage({
+    type: "get-settings",
+  })) as Partial<Settings> | undefined;
+
+  return {
+    allowlist: Array.isArray(result?.allowlist) ? result.allowlist : [],
+    blocklist: Array.isArray(result?.blocklist) ? result.blocklist : [],
+    pinConfigured: Boolean(result?.pinConfigured),
+  };
+}
+
+async function requestPin(): Promise<string | undefined> {
+  const settings = await getSettings();
+
+  if (!settings.pinConfigured) return undefined;
+
+  const pin = window.prompt("Enter your parental-controls PIN.");
+
+  return pin === null ? undefined : pin;
+}
+
+async function saveLists(
+  lists: SiteLists,
+  pin: string | undefined,
+): Promise<void> {
+  const response = await chrome.runtime.sendMessage({
+    type: "update-lists",
+    allowlist: lists.allowlist,
+    blocklist: lists.blocklist,
+    pin,
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error ?? "Unable to update site rules.");
+  }
 }
 
 function normalizeDomain(input: string): string {
@@ -63,13 +110,6 @@ function normalizeDomain(input: string): string {
   }
 
   return hostname;
-}
-
-async function saveLists(lists: SiteLists): Promise<void> {
-  await chrome.storage.local.set({
-    allowlist: [...new Set(lists.allowlist)].sort(),
-    blocklist: [...new Set(lists.blocklist)].sort(),
-  });
 }
 
 function showError(message: string): void {
@@ -123,16 +163,26 @@ function renderList(
     remove.appendChild(icon);
 
     remove.addEventListener("click", async () => {
-      const lists = await getLists();
+      try {
+        const pin = await requestPin();
+        const lists = await getLists();
 
-      if (type === "allow") {
-        lists.allowlist = lists.allowlist.filter((item) => item !== site);
-      } else {
-        lists.blocklist = lists.blocklist.filter((item) => item !== site);
+        if (type === "allow") {
+          lists.allowlist = lists.allowlist.filter((item) => item !== site);
+        } else {
+          lists.blocklist = lists.blocklist.filter((item) => item !== site);
+        }
+
+        await saveLists(lists, pin);
+        clearError();
+        await render();
+      } catch (error) {
+        showError(
+          error instanceof Error
+            ? error.message
+            : "Unable to update site rules.",
+        );
       }
-
-      await saveLists(lists);
-      await render();
     });
 
     row.append(name, remove);
@@ -163,6 +213,7 @@ async function addSite(
 
   try {
     const domain = normalizeDomain(input.value);
+    const pin = await requestPin();
     const lists = await getLists();
 
     if (type === "allow") {
@@ -175,7 +226,7 @@ async function addSite(
       lists.allowlist = lists.allowlist.filter((site) => site !== domain);
     }
 
-    await saveLists(lists);
+    await saveLists(lists, pin);
 
     input.value = "";
     clearError();
@@ -194,6 +245,38 @@ allowForm?.addEventListener("submit", async (event) => {
 blockForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   await addSite(blockInput, "block");
+});
+
+pinForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const currentPin = currentPinInput?.value || undefined;
+  const newPin = newPinInput?.value ?? "";
+  const confirmPin = confirmPinInput?.value ?? "";
+
+  if (newPin !== confirmPin) {
+    showError("PINs do not match.");
+    return;
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "set-pin",
+      currentPin,
+      newPin,
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error ?? "Unable to save PIN.");
+    }
+
+    if (currentPinInput) currentPinInput.value = "";
+    if (newPinInput) newPinInput.value = "";
+    if (confirmPinInput) confirmPinInput.value = "";
+    clearError();
+  } catch (error) {
+    showError(error instanceof Error ? error.message : "Unable to save PIN.");
+  }
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
