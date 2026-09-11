@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      lucide:
+        specifier: ^1.44.0
+        version: 1.44.0
     devDependencies:
       '@types/chrome':
         specifier: ^0.0.326
@@ -361,6 +365,9 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  lucide@1.44.0:
+    resolution: {integrity: sha512-d30uv1R6AOLBddzVMeeSk6aDAhobqh7nFxMsXuWHyhMmxKRhpLivikbfkmgzbWsn8WTLQIceGMlFY4g3gn4reg==}
+
   nanoid@3.3.18:
     resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -650,6 +657,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  lucide@1.44.0: {}
 
   nanoid@3.3.18: {}
 
