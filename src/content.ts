@@ -5,6 +5,19 @@ const processed = new WeakSet<Element>();
 
 let scheduled = false;
 let blocked = false;
+let enabled = true;
+
+async function loadSettings(): Promise<void> {
+  const settings = await chrome.storage.local.get({
+    enabled: true,
+  });
+
+  enabled = Boolean(settings.enabled);
+
+  if (!enabled) {
+    blocked = false;
+  }
+}
 
 function getElementText(element: Element): string {
   const text = element.textContent ?? "";
@@ -44,7 +57,7 @@ function scoreElement(element: Element): number {
 }
 
 function scan(root: ParentNode): void {
-  if (blocked) return;
+  if (!enabled || blocked) return;
 
   const elements = root.querySelectorAll(
     "body,main,article,section,div,p,h1,h2,h3,h4,h5,h6,a,img",
@@ -78,7 +91,7 @@ function scan(root: ParentNode): void {
 }
 
 function scheduleScan(root: ParentNode = document): void {
-  if (scheduled || blocked) return;
+  if (!enabled || scheduled || blocked) return;
 
   scheduled = true;
 
@@ -86,14 +99,16 @@ function scheduleScan(root: ParentNode = document): void {
     scheduled = false;
 
     requestAnimationFrame(() => {
-      scan(root);
+      if (enabled && !blocked) {
+        scan(root);
+      }
     });
   });
 }
 
 function observe(): void {
   const observer = new MutationObserver((mutations) => {
-    if (blocked) return;
+    if (!enabled || blocked) return;
 
     let shouldScan = false;
 
@@ -125,16 +140,35 @@ function observe(): void {
   });
 }
 
-function init(): void {
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || !changes.enabled) return;
+
+  enabled = Boolean(changes.enabled.newValue);
+
+  if (enabled) {
+    blocked = false;
+    scheduleScan();
+  }
+});
+
+async function init(): Promise<void> {
+  await loadSettings();
+
+  if (!enabled) return;
+
   scheduleScan();
   observe();
 
   window.addEventListener("popstate", () => {
+    if (!enabled) return;
+
     blocked = false;
     scheduleScan();
   });
 
   window.addEventListener("hashchange", () => {
+    if (!enabled) return;
+
     blocked = false;
     scheduleScan();
   });

@@ -1,35 +1,46 @@
 const toggle = document.querySelector<HTMLButtonElement>("#toggle");
 const statusElement = document.querySelector<HTMLElement>("#status");
 
-async function load(): Promise<void> {
-  const settings = await chrome.storage.local.get({
-    enabled: true,
+async function getSettings(): Promise<{ enabled: boolean }> {
+  return chrome.runtime.sendMessage({
+    type: "get-settings",
   });
-
-  update(Boolean(settings.enabled));
 }
 
 function update(enabled: boolean): void {
   if (!toggle || !statusElement) return;
 
-  toggle.textContent = enabled ? "Protection enabled" : "Protection disabled";
+  toggle.textContent = enabled ? "Disable protection" : "Enable protection";
 
-  toggle.dataset.enabled = String(enabled);
-  statusElement.textContent = enabled ? "Active" : "Paused";
+  statusElement.textContent = enabled
+    ? "Protection active"
+    : "Protection paused";
+}
+
+async function load(): Promise<void> {
+  const settings = await getSettings();
+
+  update(settings.enabled);
 }
 
 toggle?.addEventListener("click", async () => {
-  const settings = await chrome.storage.local.get({
-    enabled: true,
-  });
+  const settings = await getSettings();
+  const enabled = !settings.enabled;
 
-  const enabled = !Boolean(settings.enabled);
-
-  await chrome.storage.local.set({
+  const response = await chrome.runtime.sendMessage({
+    type: "set-enabled",
     enabled,
   });
 
-  update(enabled);
+  if (response?.ok) {
+    update(enabled);
+  }
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || !changes.enabled) return;
+
+  update(Boolean(changes.enabled.newValue));
 });
 
 load();

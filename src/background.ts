@@ -7,6 +7,8 @@ type Message =
   | { type: "get-settings" }
   | { type: "set-enabled"; enabled: boolean };
 
+const RULESET_ID = "zengen_rules";
+
 const defaults: Settings = {
   enabled: true,
   strictness: "balanced",
@@ -21,13 +23,48 @@ async function getSettings(): Promise<Settings> {
   };
 }
 
+async function setRulesetEnabled(enabled: boolean): Promise<void> {
+  if (enabled) {
+    await chrome.declarativeNetRequest.updateEnabledRulesets({
+      enableRulesetIds: [RULESET_ID],
+      disableRulesetIds: [],
+    });
+  } else {
+    await chrome.declarativeNetRequest.updateEnabledRulesets({
+      enableRulesetIds: [],
+      disableRulesetIds: [RULESET_ID],
+    });
+  }
+}
+
+async function applySettings(): Promise<void> {
+  const settings = await getSettings();
+  await setRulesetEnabled(settings.enabled);
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.local.get(defaults);
 
   await chrome.storage.local.set({
-    enabled: current.enabled ?? defaults.enabled,
-    strictness: current.strictness ?? defaults.strictness,
+    enabled:
+      typeof current.enabled === "boolean" ? current.enabled : defaults.enabled,
+    strictness:
+      current.strictness === "strict" ? "strict" : defaults.strictness,
   });
+
+  await applySettings();
+});
+
+chrome.runtime.onStartup.addListener(async () => {
+  await applySettings();
+});
+
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== "local") return;
+
+  if (changes.enabled) {
+    await setRulesetEnabled(Boolean(changes.enabled.newValue));
+  }
 });
 
 chrome.runtime.onMessage.addListener(
@@ -37,7 +74,10 @@ chrome.runtime.onMessage.addListener(
     sendResponse: (response: unknown) => void,
   ) => {
     if (message.type === "get-settings") {
-      getSettings().then(sendResponse);
+      getSettings()
+        .then(sendResponse)
+        .catch(() => sendResponse({ ...defaults }));
+
       return true;
     }
 
@@ -46,8 +86,12 @@ chrome.runtime.onMessage.addListener(
         .set({
           enabled: message.enabled,
         })
-        .then(() => {
+        .then(async () => {
+          await setRulesetEnabled(message.enabled);
           sendResponse({ ok: true });
+        })
+        .catch(() => {
+          sendResponse({ ok: false });
         });
 
       return true;
@@ -57,3 +101,5 @@ chrome.runtime.onMessage.addListener(
     return false;
   },
 );
+
+applySettings();
