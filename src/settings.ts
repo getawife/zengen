@@ -6,17 +6,11 @@ type SiteLists = {
 };
 
 const allowForm = document.querySelector<HTMLFormElement>("#allow-form");
-
 const blockForm = document.querySelector<HTMLFormElement>("#block-form");
-
 const allowInput = document.querySelector<HTMLInputElement>("#allow-input");
-
 const blockInput = document.querySelector<HTMLInputElement>("#block-input");
-
 const allowList = document.querySelector<HTMLElement>("#allow-list");
-
 const blockList = document.querySelector<HTMLElement>("#block-list");
-
 const errorElement = document.querySelector<HTMLElement>("#error");
 
 async function getLists(): Promise<SiteLists> {
@@ -79,15 +73,15 @@ async function saveLists(lists: SiteLists): Promise<void> {
 }
 
 function showError(message: string): void {
-  if (!errorElement) return;
-
-  errorElement.textContent = message;
+  if (errorElement) {
+    errorElement.textContent = message;
+  }
 }
 
 function clearError(): void {
-  if (!errorElement) return;
-
-  errorElement.textContent = "";
+  if (errorElement) {
+    errorElement.textContent = "";
+  }
 }
 
 function renderList(
@@ -112,11 +106,9 @@ function renderList(
 
   for (const site of sites) {
     const row = document.createElement("div");
-
     row.className = "site";
 
     const name = document.createElement("span");
-
     name.textContent = site;
 
     const remove = document.createElement("button");
@@ -126,7 +118,6 @@ function renderList(
     remove.setAttribute("aria-label", `Remove ${site}`);
 
     const icon = document.createElement("i");
-
     icon.setAttribute("data-lucide", "trash-2");
 
     remove.appendChild(icon);

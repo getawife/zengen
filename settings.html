@@ -6,6 +6,7 @@
     <title>Zengen Settings</title>
     <link rel="stylesheet" href="/src/settings.css" />
   </head>
+
   <body>
     <main>
       <header>
@@ -14,56 +15,72 @@
           <span>Back</span>
         </a>
 
-        <h1>Settings</h1>
+        <div class="heading">
+          <h1>Settings</h1>
+        </div>
       </header>
 
-      <section>
+      <section class="sites">
         <div class="section-heading">
           <div>
-            <h2>Allowed sites</h2>
+            <p class="eyebrow">SITES</p>
+            <h2>Site rules</h2>
+            <p>Choose which websites Zengen should always allow or block.</p>
           </div>
         </div>
 
-        <form id="allow-form" class="add-form">
-          <input
-            id="allow-input"
-            type="text"
-            placeholder="example.com"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button type="submit" aria-label="Add allowed site">
-            <i data-lucide="plus"></i>
-          </button>
-        </form>
-
-        <div id="allow-list" class="site-list"></div>
-      </section>
-
-      <section>
-        <div class="section-heading">
-          <div>
-            <h2>Blocked sites</h2>
+        <div class="site-section">
+          <div class="site-heading">
+            <div>
+              <h3>Allowed sites</h3>
+              <p>These sites will never be blocked.</p>
+            </div>
           </div>
+
+          <form id="allow-form" class="add-form">
+            <input
+              id="allow-input"
+              type="text"
+              placeholder="example.com"
+              autocomplete="off"
+              spellcheck="false"
+            />
+
+            <button type="submit" aria-label="Add allowed site">
+              <i data-lucide="plus"></i>
+            </button>
+          </form>
+
+          <div id="allow-list" class="site-list"></div>
         </div>
 
-        <form id="block-form" class="add-form">
-          <input
-            id="block-input"
-            type="text"
-            placeholder="example.com"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button type="submit" aria-label="Add blocked site">
-            <i data-lucide="plus"></i>
-          </button>
-        </form>
+        <div class="site-section">
+          <div class="site-heading">
+            <div>
+              <h3>Blocked sites</h3>
+              <p>These sites will always be blocked.</p>
+            </div>
+          </div>
 
-        <div id="block-list" class="site-list"></div>
+          <form id="block-form" class="add-form">
+            <input
+              id="block-input"
+              type="text"
+              placeholder="example.com"
+              autocomplete="off"
+              spellcheck="false"
+            />
+
+            <button type="submit" aria-label="Add blocked site">
+              <i data-lucide="plus"></i>
+            </button>
+          </form>
+
+          <div id="block-list" class="site-list"></div>
+        </div>
+
+        <p id="error" class="error" aria-live="polite"></p>
       </section>
-
-      <p id="error" class="error" aria-live="polite"></p>
     </main>
 
     <script type="module" src="/src/settings.ts"></script>

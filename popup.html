@@ -6,21 +6,33 @@
     <title>Zengen</title>
     <link rel="stylesheet" href="/src/popup.css" />
   </head>
+
   <body>
     <main>
       <header>
-        <h1>Zengen</h1>
+        <div class="brand">Zengen</div>
 
         <div class="status">
           <span class="status-dot"></span>
-          <span id="status">Loading...</span>
+          <span id="status">Enabled</span>
         </div>
       </header>
 
-      <div class="actions">
-        <button id="toggle" class="toggle" type="button">Loading...</button>
+      <section class="site">
+        <p class="site-label">CURRENT SITE</p>
+        <h1 id="domain">Loading...</h1>
+        <p id="site-state">Checking status...</p>
+      </section>
 
-        <a class="settings" href="settings.html"> Settings </a>
+      <div class="actions">
+        <button id="toggle" class="primary" type="button">
+          Disable protection
+        </button>
+
+        <a class="secondary" href="settings.html">
+          <span>Settings</span>
+          <i data-lucide="arrow-up-right"></i>
+        </a>
       </div>
     </main>
 

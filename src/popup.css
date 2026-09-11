@@ -8,7 +8,10 @@
     "Segoe UI",
     sans-serif;
   color: #ffffff;
-  background: #d91f26;
+  background: #000000;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -17,24 +20,24 @@
 
 html,
 body {
-  width: 320px;
-  height: 220px;
+  width: 348px;
+  min-height: 390px;
   margin: 0;
 }
 
 body {
   background:
     radial-gradient(
-      circle at 50% 0%,
-      rgba(255, 255, 255, 0.1),
-      transparent 42%
+      circle at 82% 4%,
+      rgba(255, 255, 255, 0.08),
+      transparent 32%
     ),
-    #d91f26;
+    #000000;
 }
 
 main {
-  height: 100%;
-  padding: 24px;
+  min-height: 390px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
 }
@@ -43,23 +46,21 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
 }
 
-h1 {
-  margin: 0;
-  font-size: 28px;
-  line-height: 1;
+.brand {
+  font-size: 20px;
+  font-weight: 800;
   letter-spacing: -0.045em;
-  font-weight: 750;
 }
 
 .status {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 13px;
-  font-weight: 650;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .status-dot {
@@ -69,58 +70,91 @@ h1 {
   background: #ffffff;
 }
 
+.site {
+  margin-top: 68px;
+}
+
+.site-label {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.site h1 {
+  margin: 9px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 780;
+}
+
+#site-state {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .actions {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 
-.toggle,
-.settings {
+.primary,
+.secondary {
   width: 100%;
-  min-height: 43px;
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 11px;
   font: inherit;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 750;
   text-decoration: none;
   cursor: pointer;
 }
 
-.toggle {
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.primary {
+  border: 1px solid #ffffff;
   background: #ffffff;
-  color: #d91f26;
+  color: #000000;
   transition:
     transform 140ms ease,
     background 140ms ease;
 }
 
-.toggle:hover {
-  background: rgba(255, 255, 255, 0.92);
+.primary:hover {
+  background: #eaeaea;
 }
 
-.toggle:active {
-  transform: scale(0.98);
+.primary:active,
+.secondary:active {
+  transform: scale(0.985);
 }
 
-.settings {
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.08);
+.secondary {
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
   color: #ffffff;
   transition:
-    background 140ms ease,
-    transform 140ms ease;
+    transform 140ms ease,
+    background 140ms ease;
 }
 
-.settings:hover {
-  background: rgba(255, 255, 255, 0.15);
+.secondary:hover {
+  background: rgba(255, 255, 255, 0.09);
 }
 
-.settings:active {
-  transform: scale(0.98);
+.secondary svg {
+  width: 15px;
+  height: 15px;
 }
