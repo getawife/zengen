@@ -43,19 +43,16 @@ function matchesDomain(hostname: string, domain: string): boolean {
 
   return hostname === normalized || hostname.endsWith(`.${normalized}`);
 }
-
 function getSiteState(hostname: string, settings: Settings): string {
   if (settings.allowlist.some((domain) => matchesDomain(hostname, domain))) {
-    return "This site is on your allowlist.";
+    return "Allowed";
   }
 
   if (settings.blocklist.some((domain) => matchesDomain(hostname, domain))) {
-    return "This site is on your blocklist.";
+    return "Blocked";
   }
 
-  return settings.enabled
-    ? "Zengen is monitoring this site."
-    : "Protection is currently paused.";
+  return settings.enabled ? "Allowed" : "Allowed";
 }
 
 function update(enabled: boolean, hostname: string, settings: Settings): void {
