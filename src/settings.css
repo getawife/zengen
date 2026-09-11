@@ -17,6 +17,8 @@
 
 html,
 body {
+  width: 100%;
+  min-width: 720px;
   min-height: 100%;
   margin: 0;
 }
@@ -33,9 +35,9 @@ body {
 }
 
 main {
-  width: min(100% - 40px, 720px);
+  width: min(100% - 80px, 900px);
   margin: 0 auto;
-  padding: 48px 0 64px;
+  padding: 44px 0 72px;
 }
 
 header {
@@ -46,7 +48,7 @@ header {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 36px;
+  margin-bottom: 32px;
   color: rgba(255, 255, 255, 0.78);
   text-decoration: none;
   font-size: 14px;
@@ -65,15 +67,10 @@ p {
 }
 
 h1 {
-  font-size: clamp(40px, 8vw, 58px);
-  line-height: 0.95;
+  font-size: 52px;
+  line-height: 1;
   letter-spacing: -0.055em;
-}
-
-header p {
-  margin-top: 16px;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 16px;
+  font-weight: 750;
 }
 
 section {
@@ -89,13 +86,6 @@ h2 {
   letter-spacing: -0.025em;
 }
 
-.section-heading p {
-  margin-top: 6px;
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
 .add-form {
   display: flex;
   gap: 9px;
@@ -104,7 +94,8 @@ h2 {
 input {
   min-width: 0;
   flex: 1;
-  padding: 13px 15px;
+  height: 46px;
+  padding: 0 15px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 10px;
   outline: none;
@@ -123,6 +114,7 @@ input:focus {
 
 .add-form button {
   width: 46px;
+  height: 46px;
   flex: 0 0 46px;
   display: grid;
   place-items: center;
