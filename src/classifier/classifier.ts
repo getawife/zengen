@@ -55,9 +55,15 @@ function countPhrases(text: string): number {
 
 function matchingUrlSignals(url: string): string[] {
   const signals: string[] = [];
+  const compactUrl = compactText(url);
+  const obfuscatedUrl = normalizeObfuscatedText(url);
 
   for (const pattern of URL_PATTERNS) {
     if (pattern.test(url)) signals.push("URL_MATCH");
+  }
+
+  if (hasObfuscatedTerm(compactUrl, obfuscatedUrl)) {
+    signals.push("URL_OBFUSCATED_TERM");
   }
 
   return [...new Set(signals)];
@@ -107,7 +113,7 @@ export function classify(input: {
   }
 
   if (urlSignals.length > 0) {
-    score += 30;
+    score += urlSignals.includes("URL_OBFUSCATED_TERM") ? 85 : 30;
     signals.push(...urlSignals);
   }
 
@@ -144,7 +150,9 @@ export function classify(input: {
 
   return {
     score,
-    blocked: score >= 80 && independentSignals.size >= 2,
+    blocked:
+      (score >= 80 && independentSignals.size >= 2) ||
+      independentSignals.has("URL_OBFUSCATED_TERM"),
     signals: [...new Set(signals)],
   };
 }

@@ -51,6 +51,18 @@ test("detects obfuscated explicit terms", () => {
   assert.ok(result.signals.includes("OBFUSCATED_TERM"));
 });
 
+test("blocks obfuscated explicit terms in search URLs", () => {
+  const result = classify({
+    title: "Search",
+    text: "",
+    url: "https://www.google.com/search?q=p+o+r+n",
+  });
+
+  assert.equal(result.blocked, true);
+  assert.ok(result.score >= 80);
+  assert.ok(result.signals.includes("URL_OBFUSCATED_TERM"));
+});
+
 test("does not block weak safe educational context", () => {
   const result = classify({
     title: "Adult education course",

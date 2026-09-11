@@ -79,6 +79,13 @@ function scan(root: ParentNode): void {
     url: location.href,
   });
 
+  console.info("[Zengen] Classification result", {
+    url: location.href,
+    score: result.score,
+    blocked: result.blocked,
+    signals: result.signals.join(", "),
+  });
+
   if (result.blocked) {
     blockPage(result.score);
     blocked = true;
