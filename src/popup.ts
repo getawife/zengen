@@ -43,25 +43,29 @@ function matchesDomain(hostname: string, domain: string): boolean {
 
   return hostname === normalized || hostname.endsWith(`.${normalized}`);
 }
-function getSiteState(hostname: string, settings: Settings): string {
-  if (settings.allowlist.some((domain) => matchesDomain(hostname, domain))) {
-    return "Allowed";
-  }
 
+function getSiteState(hostname: string, settings: Settings): string {
   if (settings.blocklist.some((domain) => matchesDomain(hostname, domain))) {
     return "Blocked";
   }
 
-  return settings.enabled ? "Allowed" : "Allowed";
+  return "Allowed";
 }
 
-function update(enabled: boolean, hostname: string, settings: Settings): void {
+function update(
+  enabled: boolean,
+  hostname: string,
+  settings: Settings,
+  blocked = false,
+): void {
   if (statusElement) {
     statusElement.textContent = enabled ? "Enabled" : "Disabled";
   }
 
   if (toggle) {
     toggle.textContent = enabled ? "Disable protection" : "Enable protection";
+
+    toggle.disabled = false;
   }
 
   if (domainElement) {
@@ -69,49 +73,79 @@ function update(enabled: boolean, hostname: string, settings: Settings): void {
   }
 
   if (siteStateElement) {
-    siteStateElement.textContent = getSiteState(hostname, settings);
+    siteStateElement.textContent = blocked
+      ? "Blocked"
+      : getSiteState(hostname, settings);
   }
 }
 
 async function load(): Promise<void> {
-  const settings = await getSettings();
+  try {
+    const settings = await getSettings();
 
-  const tabs = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
-
-  const hostname = getHostname(tabs[0]?.url);
-
-  update(settings.enabled, hostname, settings);
-}
-
-toggle?.addEventListener("click", async () => {
-  const settings = await getSettings();
-  const enabled = !settings.enabled;
-
-  const response = await chrome.runtime.sendMessage({
-    type: "set-enabled",
-    enabled,
-  });
-
-  if (response?.ok) {
     const tabs = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
 
-    const hostname = getHostname(tabs[0]?.url);
+    const tab = tabs[0];
 
-    update(enabled, hostname, {
-      ...settings,
-      enabled,
+    if (!tab?.id) {
+      update(settings.enabled, "This page", settings);
+
+      return;
+    }
+
+    const result = await chrome.runtime.sendMessage({
+      type: "get-blocked-site",
+      tabId: tab.id,
     });
+
+    if (result?.blocked && result.hostname) {
+      update(settings.enabled, result.hostname, settings, true);
+
+      return;
+    }
+
+    update(settings.enabled, getHostname(tab.url), settings);
+  } catch {
+    if (toggle) {
+      toggle.disabled = false;
+    }
+  }
+}
+
+toggle?.addEventListener("click", async () => {
+  if (!toggle) return;
+
+  toggle.disabled = true;
+
+  try {
+    const settings = await getSettings();
+
+    const response = await chrome.runtime.sendMessage({
+      type: "set-enabled",
+      enabled: !settings.enabled,
+    });
+
+    if (!response?.ok) {
+      toggle.disabled = false;
+      return;
+    }
+
+    await load();
+  } catch {
+    toggle.disabled = false;
   }
 });
 
-chrome.storage.onChanged.addListener(() => {
-  void load();
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (
+    area === "local" &&
+    (changes.enabled || changes.allowlist || changes.blocklist)
+  ) {
+    void load();
+  }
 });
 
 createIcons({

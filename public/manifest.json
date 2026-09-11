@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Zengen",
   "version": "0.1.0",
-  "description": "Blocks adult content and other unwanted websites.",
-  "permissions": ["storage", "declarativeNetRequest"],
+  "description": "Block adult content on the fly.",
+  "permissions": ["storage", "declarativeNetRequest", "webNavigation"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "assets/background.js",
