@@ -1,7 +1,6 @@
 import { classify } from "./classifier/classifier";
 import { blockPage } from "./ui/blocker";
 
-const processed = new WeakSet<Element>();
 let scheduled = false;
 let blocked = false;
 let enabled = true;
@@ -36,41 +35,34 @@ async function loadSettings(): Promise<void> {
   }
 }
 
-function getElementText(element: Element): string {
-  const text = element.textContent ?? "";
+function getPageSnapshot(root: ParentNode): {
+  text: string;
+  title: string;
+  alt: string;
+} {
+  const title = document.title;
+  const description = document
+    .querySelector('meta[name="description"]')
+    ?.getAttribute("content") ?? "";
+  const containers = root.querySelectorAll("main,article,[role=main]");
+  const primary = containers[0]?.textContent ?? document.body?.textContent ?? "";
+  const headings = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6"))
+    .map((element) => element.textContent ?? "")
+    .join(" ");
+  const links = Array.from(root.querySelectorAll("a"))
+    .slice(0, 80)
+    .map((element) => element.textContent ?? "")
+    .join(" ");
+  const alt = Array.from(root.querySelectorAll("img[alt]"))
+    .slice(0, 80)
+    .map((element) => element.getAttribute("alt") ?? "")
+    .join(" ");
 
-  if (text.length > 12000) {
-    return text.slice(0, 12000);
-  }
-
-  return text;
-}
-
-function isRelevant(element: Element): boolean {
-  if (
-    element instanceof HTMLScriptElement ||
-    element instanceof HTMLStyleElement ||
-    element instanceof HTMLMetaElement ||
-    element instanceof HTMLLinkElement ||
-    element instanceof SVGElement
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
-function scoreElement(element: Element): number {
-  const html = element as HTMLElement;
-
-  const result = classify({
-    text: getElementText(element),
-    title: html.getAttribute("title") ?? "",
-    alt: html.getAttribute("alt") ?? "",
-    url: location.href,
-  });
-
-  return result.score;
+  return {
+    text: [description, primary, headings, links].join(" ").slice(0, 16000),
+    title,
+    alt,
+  };
 }
 
 function scan(root: ParentNode): void {
@@ -82,33 +74,13 @@ function scan(root: ParentNode): void {
     return;
   }
 
-  const elements = root.querySelectorAll(
-    "body,main,article,section,div,p,h1,h2,h3,h4,h5,h6,a,img",
-  );
+  const result = classify({
+    ...getPageSnapshot(root),
+    url: location.href,
+  });
 
-  let highestScore = 0;
-
-  for (const element of Array.from(elements)) {
-    if (processed.has(element)) continue;
-    if (!isRelevant(element)) continue;
-
-    processed.add(element);
-
-    const score = scoreElement(element);
-
-    if (score > highestScore) {
-      highestScore = score;
-    }
-
-    if (score >= 90) {
-      blockPage(score);
-      blocked = true;
-      return;
-    }
-  }
-
-  if (highestScore >= 70) {
-    blockPage(highestScore);
+  if (result.blocked) {
+    blockPage(result.score);
     blocked = true;
   }
 }

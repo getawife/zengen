@@ -4,8 +4,8 @@
   --muted: #687483;
   --red: #c53d43;
   font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
-  color: var(--ink);
-  background: var(--surface);
+  color: var(--surface);
+  background: var(--red);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -20,24 +20,25 @@ body {
   width: 100%;
   min-height: 100%;
   margin: 0;
+  background: var(--red);
 }
 
 body {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: var(--surface);
+  background: var(--red);
 }
 
 main {
   width: min(100% - 48px, 620px);
   padding-left: 24px;
-  text-align: left;
+  text-align: center;
 }
 
 h1 {
   margin: 0;
-  color: var(--ink);
+  color: var(--surface);
   font-size: clamp(48px, 7vw, 76px);
   line-height: 0.95;
   letter-spacing: -0.065em;
@@ -46,7 +47,7 @@ h1 {
 
 .description {
   margin: 18px 0 0;
-  color: var(--muted);
+  color: var(--surface);
   font-size: 16px;
   line-height: 1.5;
 }

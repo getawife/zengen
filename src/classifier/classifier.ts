@@ -1,5 +1,9 @@
 import { adultPhrases, adultTerms } from "./lexicon";
-import { compactText, normalizeText } from "./normalize";
+import {
+  compactText,
+  normalizeObfuscatedText,
+  normalizeText,
+} from "./normalize";
 
 export interface ClassificationResult {
   score: number;
@@ -19,7 +23,8 @@ const URL_PATTERNS = [
   /rule34/i,
 ];
 
-const MAX_TEXT_LENGTH = 12000;
+const MAX_TEXT_LENGTH = 16000;
+const WEAK_TERMS = new Set(["sex", "adult", "explicit"]);
 
 function countTerms(text: string): number {
   const words = text.split(" ");
@@ -32,6 +37,12 @@ function countTerms(text: string): number {
   return count;
 }
 
+function countStrongTerms(text: string): number {
+  return text
+    .split(" ")
+    .filter((word) => adultTerms.has(word) && !WEAK_TERMS.has(word)).length;
+}
+
 function countPhrases(text: string): number {
   let count = 0;
 
@@ -42,14 +53,14 @@ function countPhrases(text: string): number {
   return count;
 }
 
-function urlScore(url: string): number {
-  let score = 0;
+function matchingUrlSignals(url: string): string[] {
+  const signals: string[] = [];
 
   for (const pattern of URL_PATTERNS) {
-    if (pattern.test(url)) score += 20;
+    if (pattern.test(url)) signals.push("URL_MATCH");
   }
 
-  return score;
+  return [...new Set(signals)];
 }
 
 export function classify(input: {
@@ -58,36 +69,42 @@ export function classify(input: {
   title?: string;
   alt?: string;
 }): ClassificationResult {
+  const title = normalizeText(input.title ?? "");
   const raw = [input.text ?? "", input.title ?? "", input.alt ?? ""].join(" ");
 
   const text = normalizeText(raw).slice(0, MAX_TEXT_LENGTH);
   const compact = compactText(raw).slice(0, MAX_TEXT_LENGTH);
+  const obfuscated = normalizeObfuscatedText(raw).slice(0, MAX_TEXT_LENGTH);
 
   let score = 0;
   const signals: string[] = [];
 
   const terms = countTerms(text);
+  const strongTerms = countStrongTerms(text);
   const phrases = countPhrases(text);
-  const url = urlScore(input.url ?? "");
+  const urlSignals = matchingUrlSignals(input.url ?? "");
 
-  if (terms > 0) {
-    score += Math.min(terms * 14, 56);
-    signals.push(`terms:${terms}`);
+  if (strongTerms > 0) {
+    score += Math.min(strongTerms * 18, 54);
+    signals.push("EXPLICIT_TERM_CLUSTER");
+  } else if (terms > 0) {
+    score += 8;
+    signals.push("WEAK_TERM");
   }
 
   if (phrases > 0) {
-    score += Math.min(phrases * 24, 72);
-    signals.push(`phrases:${phrases}`);
+    score += Math.min(phrases * 28, 56);
+    signals.push("EXPLICIT_PHRASE");
   }
 
-  if (url > 0) {
-    score += Math.min(url, 60);
-    signals.push("url");
+  if (urlSignals.length > 0) {
+    score += 30;
+    signals.push(...urlSignals);
   }
 
-  if (adultTerms.has(compact)) {
-    score += 35;
-    signals.push("compact");
+  if (adultTerms.has(compact) || adultTerms.has(obfuscated)) {
+    score += 28;
+    signals.push("OBFUSCATED_TERM");
   }
 
   const explicitDensity =
@@ -96,15 +113,29 @@ export function classify(input: {
       : 0;
 
   if (explicitDensity > 0.04) {
-    score += 25;
-    signals.push("density");
+    score += 20;
+    signals.push("HIGH_TERM_DENSITY");
+  }
+
+  if (title && (phrases > 0 || strongTerms > 0)) {
+    score += 12;
+    signals.push("TITLE_CONTEXT");
   }
 
   score = Math.min(score, 100);
 
+  const independentSignals = new Set(
+    signals.filter((signal) => signal !== "WEAK_TERM" && signal !== "TITLE_CONTEXT"),
+  );
+
+  if (independentSignals.size >= 2) {
+    score = Math.min(score + 10, 100);
+    signals.push("MULTIPLE_SIGNALS");
+  }
+
   return {
     score,
-    blocked: score >= 70,
-    signals,
+    blocked: score >= 80 && independentSignals.size >= 2,
+    signals: [...new Set(signals)],
   };
 }
