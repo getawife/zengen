@@ -1,19 +1,153 @@
 import { adultPhrases, adultTerms } from "./lexicon.js";
 import {
   compactText,
+  containsTokenSequence,
+  getTokenWindow,
   normalizeObfuscatedText,
   normalizeText,
+  normalizeObfuscatedToken,
+  normalizeObfuscatedSequence,
+  tokenize,
 } from "./normalize.js";
+
+export interface ClassificationSignal {
+  type:
+    | "EXPLICIT_TERM"
+    | "CONTEXTUAL_TERM"
+    | "EXPLICIT_PHRASE"
+    | "SAFE_CONTEXT"
+    | "URL_MATCH"
+    | "URL_OBFUSCATED_TERM"
+    | "OBFUSCATED_TERM"
+    | "HIGH_TERM_DENSITY"
+    | "TITLE_CONTEXT";
+  value?: string;
+  source: "text" | "title" | "alt" | "url";
+  weight: number;
+}
 
 export interface ClassificationResult {
   score: number;
   blocked: boolean;
-  signals: string[];
+  signals: ClassificationSignal[];
 }
+
+const MAX_TEXT_LENGTH = 16000;
+
+const STRONG_TERMS = new Set([
+  "porn",
+  "porno",
+  "pornography",
+  "xxx",
+  "sexcam",
+  "sexvideo",
+  "adultvideo",
+  "adultcontent",
+  "hentai",
+  "rule34",
+  "pornografia",
+  "pornografie",
+  "pornographie",
+  "порно",
+  "порнография",
+  "色情",
+  "情色",
+  "포르노",
+  "ポルノ",
+  "إباحية",
+  "پورن",
+]);
+
+const CONTEXTUAL_TERMS = new Set([
+  "sex",
+  "adult",
+  "explicit",
+  "nude",
+  "nudity",
+  "naked",
+  "erotic",
+  "sexo",
+  "desnudo",
+  "desnuda",
+  "erotico",
+  "erotica",
+  "nackt",
+  "nu",
+  "nue",
+  "裸体",
+  "裸",
+  "성인",
+  "나체",
+  "アダルト",
+  "эротика",
+  "обнаженный",
+  "seks",
+  "ciplak",
+  "جنس",
+  "عري",
+  "سیکس",
+  "برہنہ",
+]);
+
+const SAFE_CONTEXTS = [
+  ["explicit", "formula"],
+  ["explicit", "equation"],
+  ["explicit", "function"],
+  ["explicit", "solution"],
+  ["explicit", "instructions"],
+  ["explicit", "proof"],
+  ["explicit", "expression"],
+  ["adult", "education"],
+  ["adult", "learning"],
+  ["adult", "student"],
+  ["adult", "students"],
+  ["adult", "swimming"],
+  ["adult", "responsibilities"],
+  ["adult", "literacy"],
+  ["adult", "training"],
+  ["sex", "education"],
+  ["sex", "education"],
+  ["sex", "health"],
+  ["sex", "healthcare"],
+  ["sex", "biology"],
+  ["sex", "chromosome"],
+  ["sex", "chromosomes"],
+  ["sex", "reproduction"],
+  ["sex", "reproductive"],
+  ["sex", "development"],
+  ["sex", "differences"],
+  ["sex", "determination"],
+  ["naked", "eye"],
+  ["naked", "eye"],
+  ["nude", "color"],
+  ["nude", "colour"],
+  ["nude", "paint"],
+  ["nude", "painting"],
+  ["nude", "art"],
+  ["nude", "photography"],
+  ["nude", "figure"],
+  ["nude", "figure"],
+  ["nude", "model"],
+];
+
+const SAFE_PHRASES = [
+  "sex education",
+  "sexual health",
+  "sexual education",
+  "reproductive health",
+  "adult education",
+  "adult learning",
+  "explicit formula",
+  "explicit function",
+  "explicit equation",
+  "naked eye",
+  "nude art",
+  "nude photography",
+  "figure drawing",
+];
 
 const URL_PATTERNS = [
   /porn/i,
-  /xxx/i,
   /nsfw/i,
   /adult[-_]?content/i,
   /sex[-_]?cam/i,
@@ -23,59 +157,182 @@ const URL_PATTERNS = [
   /rule34/i,
 ];
 
-const MAX_TEXT_LENGTH = 16000;
-const WEAK_TERMS = new Set(["sex", "adult", "explicit"]);
+function countOccurrences(text: string, term: string): number {
+  const tokens = tokenize(text);
 
-function countTerms(text: string): number {
-  const words = text.split(" ");
-  let count = 0;
-
-  for (const word of words) {
-    if (adultTerms.has(word)) count++;
-  }
-
-  return count;
+  return tokens.filter((token) => token === term).length;
 }
 
-function countStrongTerms(text: string): number {
-  return text
-    .split(" ")
-    .filter((word) => adultTerms.has(word) && !WEAK_TERMS.has(word)).length;
+function containsSafeContext(tokens: string[], index: number): boolean {
+  const window = getTokenWindow(tokens, index, 3);
+  const context = new Set(window);
+
+  return SAFE_CONTEXTS.some((phrase) =>
+    phrase.every((term) => context.has(term)),
+  );
 }
 
-function countPhrases(text: string): number {
-  let count = 0;
+function countStrongTerms(
+  text: string,
+  source: ClassificationSignal["source"],
+): ClassificationSignal[] {
+  const tokens = tokenize(text);
+  const signals: ClassificationSignal[] = [];
+
+  tokens.forEach((token, index) => {
+    if (!STRONG_TERMS.has(token)) return;
+
+    signals.push({
+      type: "EXPLICIT_TERM",
+      value: token,
+      source,
+      weight: 24,
+    });
+  });
+
+  return signals;
+}
+
+function countContextualTerms(
+  text: string,
+  source: ClassificationSignal["source"],
+): ClassificationSignal[] {
+  const tokens = tokenize(text);
+  const signals: ClassificationSignal[] = [];
+
+  tokens.forEach((token, index) => {
+    if (!CONTEXTUAL_TERMS.has(token)) return;
+
+    if (containsSafeContext(tokens, index)) {
+      signals.push({
+        type: "SAFE_CONTEXT",
+        value: token,
+        source,
+        weight: -14,
+      });
+
+      return;
+    }
+
+    signals.push({
+      type: "CONTEXTUAL_TERM",
+      value: token,
+      source,
+      weight: 3,
+    });
+  });
+
+  return signals;
+}
+
+function countPhrases(
+  text: string,
+  source: ClassificationSignal["source"],
+): ClassificationSignal[] {
+  const tokens = tokenize(text);
+  const signals: ClassificationSignal[] = [];
 
   for (const phrase of adultPhrases) {
-    if (text.includes(phrase)) count++;
+    const normalizedPhrase = normalizeText(phrase);
+    const phraseTokens = tokenize(normalizedPhrase);
+
+    if (!containsTokenSequence(tokens, phraseTokens)) {
+      continue;
+    }
+
+    if (SAFE_PHRASES.includes(normalizedPhrase)) {
+      signals.push({
+        type: "SAFE_CONTEXT",
+        value: normalizedPhrase,
+        source,
+        weight: -18,
+      });
+
+      continue;
+    }
+
+    signals.push({
+      type: "EXPLICIT_PHRASE",
+      value: normalizedPhrase,
+      source,
+      weight: 30,
+    });
   }
 
-  return count;
+  return signals;
 }
 
-function matchingUrlSignals(url: string): string[] {
-  const signals: string[] = [];
+function matchingUrlSignals(url: string): ClassificationSignal[] {
+  const signals: ClassificationSignal[] = [];
+  const normalizedUrl = normalizeText(url);
   const compactUrl = compactText(url);
   const obfuscatedUrl = normalizeObfuscatedText(url);
 
   for (const pattern of URL_PATTERNS) {
-    if (pattern.test(url)) signals.push("URL_MATCH");
+    if (!pattern.test(url)) continue;
+
+    signals.push({
+      type: "URL_MATCH",
+      source: "url",
+      weight: 28,
+    });
   }
 
-  if (hasObfuscatedTerm(compactUrl, obfuscatedUrl)) {
-    signals.push("URL_OBFUSCATED_TERM");
+  for (const term of STRONG_TERMS) {
+    if (
+      normalizedUrl.includes(term) ||
+      compactUrl.includes(term) ||
+      obfuscatedUrl.includes(term)
+    ) {
+      signals.push({
+        type: "URL_OBFUSCATED_TERM",
+        value: term,
+        source: "url",
+        weight: 60,
+      });
+    }
   }
 
-  return [...new Set(signals)];
+  return signals;
 }
 
-function hasObfuscatedTerm(compact: string, obfuscated: string): boolean {
-  for (const term of adultTerms) {
-    if (WEAK_TERMS.has(term) || term.length < 4) continue;
-    if (compact.includes(term) || obfuscated.includes(term)) return true;
+function matchingObfuscatedTerms(
+  text: string,
+  source: ClassificationSignal["source"],
+): ClassificationSignal[] {
+  const tokens = tokenize(text);
+  const normalizedTokens = tokens.map(normalizeObfuscatedToken);
+  const normalizedSequence = normalizeObfuscatedSequence(tokens.join(""));
+
+  const signals: ClassificationSignal[] = [];
+
+  for (const term of STRONG_TERMS) {
+    if (term.length < 5) {
+      continue;
+    }
+
+    const exactMatch = tokens.includes(term);
+
+    if (exactMatch) {
+      continue;
+    }
+
+    const tokenMatch = normalizedTokens.includes(term);
+    const sequenceMatch = normalizedSequence.includes(term);
+
+    if (!tokenMatch && !sequenceMatch) {
+      continue;
+    }
+
+    signals.push({
+      type: "OBFUSCATED_TERM",
+      value: term,
+      source,
+      weight: 40,
+    });
   }
 
-  return false;
+  return signals;
 }
 
 export function classify(input: {
@@ -84,75 +341,108 @@ export function classify(input: {
   title?: string;
   alt?: string;
 }): ClassificationResult {
-  const title = normalizeText(input.title ?? "");
-  const raw = [input.text ?? "", input.title ?? "", input.alt ?? ""].join(" ");
+  const rawText = input.text ?? "";
+  const rawTitle = input.title ?? "";
+  const rawAlt = input.alt ?? "";
 
-  const text = normalizeText(raw).slice(0, MAX_TEXT_LENGTH);
-  const compact = compactText(raw).slice(0, MAX_TEXT_LENGTH);
-  const obfuscated = normalizeObfuscatedText(raw).slice(0, MAX_TEXT_LENGTH);
-
-  let score = 0;
-  const signals: string[] = [];
-
-  const terms = countTerms(text);
-  const strongTerms = countStrongTerms(text);
-  const phrases = countPhrases(text);
-  const urlSignals = matchingUrlSignals(input.url ?? "");
-
-  if (strongTerms > 0) {
-    score += Math.min(strongTerms * 18, 54);
-    signals.push("EXPLICIT_TERM_CLUSTER");
-  } else if (terms > 0) {
-    score += 8;
-    signals.push("WEAK_TERM");
-  }
-
-  if (phrases > 0) {
-    score += Math.min(phrases * 28, 56);
-    signals.push("EXPLICIT_PHRASE");
-  }
-
-  if (urlSignals.length > 0) {
-    score += urlSignals.includes("URL_OBFUSCATED_TERM") ? 85 : 30;
-    signals.push(...urlSignals);
-  }
-
-  if (hasObfuscatedTerm(compact, obfuscated)) {
-    score += 50;
-    signals.push("OBFUSCATED_TERM");
-  }
-
-  const explicitDensity =
-    text.length > 0
-      ? (terms + phrases * 2) / Math.max(text.split(" ").length, 1)
-      : 0;
-
-  if (explicitDensity > 0.04) {
-    score += 20;
-    signals.push("HIGH_TERM_DENSITY");
-  }
-
-  if (title && (phrases > 0 || strongTerms > 0)) {
-    score += 12;
-    signals.push("TITLE_CONTEXT");
-  }
-
-  score = Math.min(score, 100);
-
-  const independentSignals = new Set(
-    signals.filter((signal) => signal !== "WEAK_TERM" && signal !== "TITLE_CONTEXT"),
+  const text = normalizeText([rawText, rawTitle, rawAlt].join(" ")).slice(
+    0,
+    MAX_TEXT_LENGTH,
   );
 
-  if (independentSignals.size >= 2) {
-    score = Math.min(score + 10, 100);
-    signals.push("MULTIPLE_SIGNALS");
+  const title = normalizeText(rawTitle);
+  const tokens = tokenize(text);
+
+  const signals: ClassificationSignal[] = [];
+
+  signals.push(
+    ...countStrongTerms(rawText, "text"),
+    ...countContextualTerms(rawText, "text"),
+    ...countPhrases(rawText, "text"),
+    ...countStrongTerms(rawTitle, "title"),
+    ...countContextualTerms(rawTitle, "title"),
+    ...countPhrases(rawTitle, "title"),
+    ...countContextualTerms(rawAlt, "alt"),
+    ...matchingUrlSignals(input.url ?? ""),
+    ...matchingObfuscatedTerms(rawText, "text"),
+  );
+
+  const explicitTerms = signals.filter(
+    (signal) => signal.type === "EXPLICIT_TERM",
+  );
+
+  const explicitPhrases = signals.filter(
+    (signal) => signal.type === "EXPLICIT_PHRASE",
+  );
+
+  const safeContexts = signals.filter(
+    (signal) => signal.type === "SAFE_CONTEXT",
+  );
+
+  const independentEvidence = new Set(
+    signals
+      .filter(
+        (signal) =>
+          signal.type === "EXPLICIT_TERM" ||
+          signal.type === "EXPLICIT_PHRASE" ||
+          signal.type === "URL_MATCH" ||
+          signal.type === "URL_OBFUSCATED_TERM" ||
+          signal.type === "OBFUSCATED_TERM",
+      )
+      .map((signal) => signal.type),
+  );
+
+  let score = signals.reduce((total, signal) => total + signal.weight, 0);
+
+  if (explicitTerms.length > 0 && explicitPhrases.length > 0) {
+    score += 15;
+
+    signals.push({
+      type: "TITLE_CONTEXT",
+      source: title ? "title" : "text",
+      weight: 15,
+    });
   }
+
+  const explicitCount = explicitTerms.length + explicitPhrases.length * 2;
+
+  const density = tokens.length > 0 ? explicitCount / tokens.length : 0;
+
+  if (density > 0.08 && explicitCount >= 2) {
+    score += 20;
+
+    signals.push({
+      type: "HIGH_TERM_DENSITY",
+      source: "text",
+      weight: 20,
+    });
+  }
+
+  if (independentEvidence.size >= 2) {
+    score += 10;
+  }
+
+  if (safeContexts.length > 0 && explicitTerms.length === 0) {
+    score = Math.min(score, 12);
+  }
+
+  score = Math.max(0, Math.min(score, 100));
+
+  const hasStrongExplicitEvidence =
+    explicitTerms.length >= 2 ||
+    explicitPhrases.length >= 1 ||
+    signals.some(
+      (signal) =>
+        signal.type === "URL_OBFUSCATED_TERM" ||
+        signal.type === "OBFUSCATED_TERM",
+    );
+
+  const blocked =
+    hasStrongExplicitEvidence && score >= 70 && independentEvidence.size >= 1;
 
   return {
     score,
-    blocked:
-      (score >= 80 && independentSignals.size >= 2) ||
-      independentSignals.has("URL_OBFUSCATED_TERM"),
-    signals: [...new Set(signals)],
+    blocked,
+    signals,
   };
 }
